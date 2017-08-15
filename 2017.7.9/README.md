@@ -13,5 +13,14 @@ linux0.00 代码的下载地址为[下载](http://oldlinux.org/Linux.old/bochs/l
 3. 立即数前必须加$,寄存器前必须加%
 4. 待续
 
-### 引用
+## 寻址方式说明
+在实模式中:<br>
+  若cs段寄存器存储内容位0x07c0,rip中存储位为0x3c则指令的地址表示位0x07c0:0x3c
+  实际的地址计算如下cs*16+rip = 0x7c3c
+在保护模式下:<br>
+  cs或者其他段寄存器中存储的都是段选择子.用来在gdt中来寻找段描述符然后在结合基址加偏移位算出实际的地址
+
+## 引用
 [Operating System Labs] 我对Linux0.00中 head.s 的理解和注释http://www.cnblogs.com/SuperBlee/p/4095124.html
+
+[GDT,LDT,GDTR,LDTR 详解,包你理解透彻]http://www.techbulo.com/708.html

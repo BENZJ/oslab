@@ -1,6 +1,6 @@
 #  head.s contains the 32-bit startup code.
-#  Two L3 task multitasking. The code of tasks are in kernel area, 
-#  just like the Linux. The kernel code is located at 0x10000. 
+#  Two L3 task multitasking. The code of tasks are in kernel area,
+#  just like the Linux. The kernel code is located at 0x10000.
 SCRN_SEL	= 0x18
 TSS0_SEL	= 0x20
 LDT0_SEL	= 0x28
@@ -11,15 +11,21 @@ LDT1_SEL	= 0x38
 .globl startup_32
 startup_32:
 	movl $0x10,%eax
-	mov %ax,%ds
+	mov %ax,%ds !设置ds段选择子为0x10高13位为 0x10表示为第二个gdt在之前的定义中这个是一个数据段
 #	mov %ax,%es
-	lss init_stack,%esp
+	lss init_stack,%esp 	#lss指令LSS reg,mem,mem低字->reg,mem高字->ss
+												#我电脑中是这样lss esp, ds:0xbd8
+												#原来exp中位0x400,ss为0x07c0
+												#执行后esp为0xbd8,ss变为了0x10
+												#
 
+#这里bochs调试时候注意用n会直接完成call不会进入call内部
+#用s可以进行单步调试
 # setup base fields of descriptors.
-	call setup_idt
+	call setup_idt		#2017.8.15今天调试到这一步明天继续
 	call setup_gdt
 	movl $0x10,%eax		# reload all the segment registers
-	mov %ax,%ds		# after changing gdt. 
+	mov %ax,%ds		# after changing gdt.
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
@@ -29,25 +35,25 @@ startup_32:
 	movb $0x36, %al
 	movl $0x43, %edx
 	outb %al, %dx
-	movl $11930, %eax        # timer frequency 100 HZ 
+	movl $11930, %eax        # timer frequency 100 HZ
 	movl $0x40, %edx
 	outb %al, %dx
 	movb %ah, %al
 	outb %al, %dx
 
 # setup timer & system call interrupt descriptors.
-	movl $0x00080000, %eax	
+	movl $0x00080000, %eax
 	movw $timer_interrupt, %ax
 	movw $0x8E00, %dx
 	movl $0x08, %ecx              # The PC default timer int.
 	lea idt(,%ecx,8), %esi
-	movl %eax,(%esi) 
+	movl %eax,(%esi)
 	movl %edx,4(%esi)
 	movw $system_interrupt, %ax
 	movw $0xef00, %dx
 	movl $0x80, %ecx
 	lea idt(,%ecx,8), %esi
-	movl %eax,(%esi) 
+	movl %eax,(%esi)
 	movl %edx,4(%esi)
 
 # unmask the timer interrupt.
@@ -63,7 +69,7 @@ startup_32:
 	movl $TSS0_SEL, %eax
 	ltr %ax
 	movl $LDT0_SEL, %eax
-	lldt %ax 
+	lldt %ax
 	movl $0, current
 	sti
 	pushl $0x17
@@ -109,7 +115,7 @@ write_char:
 	cmpl $2000, %ebx
 	jb 1f
 	movl $0, %ebx
-1:	movl %ebx, scr_loc	
+1:	movl %ebx, scr_loc
 #	popl %eax
 	popl %ebx
 	pop %gs
@@ -129,7 +135,7 @@ ignore_int:
 	pop %ds
 	iret
 
-/* Timer interrupt handler */ 
+/* Timer interrupt handler */
 .align 2
 timer_interrupt:
 	push %ds
@@ -175,9 +181,9 @@ scr_loc:.long 0
 .align 2
 lidt_opcode:
 	.word 256*8-1		# idt contains 256 entries
-	.long idt		# This will be rewrite by code. 
+	.long idt		# This will be rewrite by code.
 lgdt_opcode:
-	.word (end_gdt-gdt)-1	# so does gdt 
+	.word (end_gdt-gdt)-1	# so does gdt
 	.long gdt		# This will be rewrite by code.
 
 	.align 8
@@ -242,7 +248,7 @@ task0:
 	int $0x80
 	movl $0xfff, %ecx
 1:	loop 1b
-	jmp task0 
+	jmp task0
 
 task1:
 	movl $0x17, %eax
@@ -253,5 +259,5 @@ task1:
 1:	loop 1b
 	jmp task1
 
-	.fill 128,4,0 
+	.fill 128,4,0
 usr_stk1:
